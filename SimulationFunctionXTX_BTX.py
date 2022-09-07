@@ -30,3 +30,5 @@ class SimulationFunctionXTX_BTX:
 
     def get_optimum_x(self,number_of_nodes):
         return ((1/( number_of_nodes)) * self.b_sum)
+
+
