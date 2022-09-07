@@ -28,7 +28,7 @@ class Node(threading.Thread):
         self.node_id = node_id
         self.epsilon = epsilon
         #self.c = c
-        self.xi = np.array(x0) + random.random()
+        self.xi = np.array(x0) + np.random.uniform(-1, 1, 4)
         self.all_calculated_xis = []
         self.function_constants = function_constants
         self.simulation_function_xtx_btx = simulation_function_xtx_btx

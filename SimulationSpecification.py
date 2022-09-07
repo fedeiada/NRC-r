@@ -48,7 +48,7 @@ class SimulationSpecification:
     def set_epsilon(self):
         """Proper step-size should be specified. Ex. 0.01 """
 
-        self.epsilon = 0.05
+        self.epsilon = 0.1
 
         # Please comment the hard coded value and uncomment the following code if inserting the start point from
         # console is preferred
@@ -81,7 +81,7 @@ class SimulationSpecification:
         """Minimum accepted divergence should be specified. This value will be used to evaluate if calculated xi has
         converged sufficiently or not. """
 
-        self.min_accepted_divergence = 0.01
+        self.min_accepted_divergence = 0.001
 
         # Please comment the hard coded value and uncomment the following code if inserting the start point from
         # console is preferred
