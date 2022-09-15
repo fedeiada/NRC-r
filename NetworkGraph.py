@@ -57,7 +57,7 @@ class NetworkGraph:
         # Generating random B for each node: self.b represents the B in our function (XTX + BX). Since each node can
         # have separate function, values of the b vector fpr each node will be generated randomly but those values will
         # not differ a lot between different nodes.
-        self.b = (1e-5 * (np.random.rand(self.simulation_specification.number_of_nodes,
+        self.b = (1e-3 * (np.random.rand(self.simulation_specification.number_of_nodes,
                                          self.simulation_specification.x0.size) - np.full(
             (self.simulation_specification.number_of_nodes, self.simulation_specification.x0.size), 0.5)))
 
