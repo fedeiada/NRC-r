@@ -85,4 +85,5 @@ class NetworkGraph:
     # Drawing the topology of generated network
     def draw_graph(self):
         nx.draw(self.network_graph)
+        plt.savefig('network.png')
         plt.show()

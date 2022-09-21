@@ -10,7 +10,7 @@ class SimulationSpecification:
     """Data-holder for simulation specification. This class handles all the required user interactions in order to
     collect the simulation specification. """
     def __init__(self):
-        self.number_of_nodes: list[Node] = 6
+        self.number_of_nodes: list[Node] = 5
         self.x0 = np.array([0])
         self.epsilon = 0.0
         self.min_accepted_divergence = 0.0
@@ -30,7 +30,7 @@ class SimulationSpecification:
     def set_x0(self):
         """Start point (X0) should be specified as a list. Ex. [1,1,2]"""
 
-        self.x0 = np.array([2, 2, 1, 4])
+        self.x0 = np.array([2, -1, 1, 4])
 
         # Please comment the hard coded value and uncomment the following code if inserting the start point from
         # console is preferred

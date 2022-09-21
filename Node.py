@@ -81,6 +81,7 @@ class Node(threading.Thread):
             '''
             if random.randrange(0, 9, 1) == 2:  # 1/10 chance to loss message
                 self.msg_rel = False
+                print("message LOST")
             '''
 
             if random.randrange(0, 9, 1)%2 == 0:  # 1/2 chance to loss message
