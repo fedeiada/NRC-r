@@ -49,9 +49,9 @@ pcrange = np.linspace(0, 1)
 Mrange = 2 ** np.arange(1, 10)
 '''
 mrange = np.arange(1, 41)
-Nrange = 2 ** np.arange(3, 15)
+Nrange = 2 ** np.arange(3, 16)
 pcrange = np.linspace(0, 1)
-Mrange = 2 ** np.arange(1, 10)
+Mrange = 2 ** np.arange(1, 13)
 plt.figure(figsize=[11.2, 8.4])
 # Collect all variables in lists
 xlabs = ['Packet count $m$', 'Subcarrier count $N$',
@@ -78,9 +78,9 @@ def gradient(m, N, M ,pc, *, sea_cond=np.array([12, 35, 20, 300]),toh=1e-3, B=40
     td = sea_cond[3] / c(sea_cond[0], sea_cond[1], sea_cond[2])
     L = (toh+td) * B
     p = 1 + pc
-    dJdm = 1/m -((N * p)/(L + N*m*p))
-    dJdN = 1/N -((m * p)/(L + N*m*p))
-    dJdM = 1 / (M * np.log(M))
+    dJdm = -1/m +((N * p)/(L + N*m*p))
+    dJdN = -1/N +((m * p)/(L + N*m*p))
+    dJdM = -1 / (M * np.log(M))
     dJdp = -(N*m) / (L + N*m*p)
     return np.array([dJdm, dJdN, dJdM, dJdp]).T
 
@@ -91,32 +91,38 @@ def hessian(m, N, M ,pc, *, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=40
     td = sea_cond[3] / c(sea_cond[0], sea_cond[1], sea_cond[2])
     L = (toh + td) * B
     p = 1 + pc
-    d2Jdm2 = ((N**2)*(p**2))/(L + N*m*p)**2 - 1/m**2
-    d2JdmdN = ((N*m)*(p**2))/(L + N*m*p)**2 - p/(L + N*m*p)
-    d2Jdmdp = ((N**2)*m*p)/(L + N*m*p)**2 - N/(L + N*m*p)
-    d2JdN2 = ((m**2)*(p**2))/(L + N*m*p)**2 - 1/N**2
-    d2JdNdp = (N*(m**2)*p)/(L + N*m*p)**2 - m/(L + N*m*p)
-    d2JdM2 = - 1/((M**2)*np.log(M)) - 1/((M)**2*np.log(M)**2)
-    d2Jdp2 = ((N**2)*(m**2))/(L + N*m*p)**2
+    d2Jdm2 = -((N**2)*(p**2))/(L + N*m*p)**2 + 1/m**2
+    d2JdmdN = -((N*m)*(p**2))/(L + N*m*p)**2 + p/(L + N*m*p)
+    d2Jdmdp = -((N**2)*m*p)/(L + N*m*p)**2 + N/(L + N*m*p)
+    d2JdN2 = -((m**2)*(p**2))/(L + N*m*p)**2 + 1/N**2
+    d2JdNdp = -(N*(m**2)*p)/(L + N*m*p)**2 + m/(L + N*m*p)
+    d2JdM2 =  1/((M**2)*np.log(M)) + 1/((M)**2*np.log(M)**2)
+    d2Jdp2 = -((N**2)*(m**2))/(L + N*m*p)**2
+    return np.array([[d2Jdm2, d2JdmdN,  0],
+                     [d2JdmdN, d2JdN2,  0],
+                     [0     ,   0,  d2JdM2]])
+    '''
     return np.array([[d2Jdm2, d2JdmdN,  0, d2Jdmdp],
                      [d2JdmdN, d2JdN2,  0, d2JdNdp],
                      [0      ,   0,  d2JdM2,     0],
                      [d2Jdmdp, d2JdNdp, 0, d2Jdp2]])
-
+    '''
 
 # optimal point
-m = 12.4262
-N = 540.8211
-M = 0.8
-pc = 0.3369
+m = 12.4262  #25
+N = 540.8211 #220.15
+M = 2 #26.2
+pc = 0.3369 #0.2
 grad = gradient(m, N, M, pc)
 hesse = hessian(m, N, M, pc)
 eigval, eigvec = np.linalg.eigh(hesse)
 print(f"Eigenvalues are\n{eigval}\n and map to the columns of\n{eigvec}")
 
+'''
 eig2val, eig2vec = np.linalg.eigh(hesse[:-1, :-1])
 print(f"With cyclic prefix fraction fixed, eigenvalues are\n{eig2val}\n"
       f"and map to the columns of\n{eig2vec}")
+'''
 
 ## Gershgorin theorem to look at convexity
 def gershgorin_disks(A):
@@ -148,7 +154,7 @@ def gen_circle(centrum, radius, npoints=101):
 centra, radii = gershgorin_disks(hesse)
 plt.figure(figsize=[7.8, 2.4])
 for it in range(len(centra)):
-    plt.subplot(1, 4, 1 + it)
+    plt.subplot(1, 3, 1 + it)
     plt.plot(*gen_circle(centra[it], radii[it]))
     if it == 0:
         plt.plot(*gen_circle(centra[1], radii[1]))
@@ -156,9 +162,11 @@ for it in range(len(centra)):
     plt.xlabel("Real part")
     plt.ylabel("Imag. part")
 plt.show()
-centra2, radii2 = gershgorin_disks(hesse[:-1, :-1])
-tr2 = np.trace(hesse[:-1, :-1])
-prod2 = np.linalg.det(hesse[:-1, :-1])
+
+'''
+centra2, radii2 = gershgorin_disks(hesse[0:3, 0:3])
+tr2 = np.trace(hesse[0:3, 0:3])
+prod2 = np.linalg.det(hesse[0:3, 0:3])
 print(f"x^2{-tr2:+.3e}x{prod2:+.3e} = 0 is the characteristic equation with pc fixed")
 
 plt.figure(figsize=[5.2, 2.4])
@@ -171,3 +179,5 @@ for it in range(len(centra2)):
     plt.xlabel("Real part")
     plt.ylabel("Imag. part")
 plt.show()
+'''
+print(f"Hessian matrix \n{hesse}")
