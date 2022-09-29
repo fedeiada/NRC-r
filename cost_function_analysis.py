@@ -67,15 +67,17 @@ for it in range(4):
     plt.xscale('log' if it % 2 == 1 else 'linear')
     plt.grid()
     plt.ylabel('Cost function')
+    plt.savefig('range of cost function.png')
 plt.show()
 
 
 ################## look at eigenvalues in the optimal point ##############################
-def gradient(m, N, M ,pc, *, sea_cond=np.array([12, 35, 20, 300]),toh=1e-3, B=4000):
+def gradient(m, N, M ,pc, *, sea_cond=np.array([10, 35, 40, 300]),toh=1e-3, B=4000):
     """Returns the gradient of the objective function.
     """
     # Helper variables
     td = sea_cond[3] / c(sea_cond[0], sea_cond[1], sea_cond[2])
+    print(td)
     L = (toh+td) * B
     p = 1 + pc
     dJdm = -1/m +((N * p)/(L + N*m*p))
@@ -116,6 +118,7 @@ pc = 0.3369 #0.2
 grad = gradient(m, N, M, pc)
 hesse = hessian(m, N, M, pc)
 eigval, eigvec = np.linalg.eigh(hesse)
+print(f"Hessian matrix \n{hesse}")
 print(f"Eigenvalues are\n{eigval}\n and map to the columns of\n{eigvec}")
 
 '''
@@ -180,4 +183,3 @@ for it in range(len(centra2)):
     plt.ylabel("Imag. part")
 plt.show()
 '''
-print(f"Hessian matrix \n{hesse}")
