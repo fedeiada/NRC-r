@@ -31,6 +31,8 @@ if True:        # select the simulation function
         def get_optimum_x(self,number_of_nodes):
             return ((1/( number_of_nodes)) * self.b_sum)
 else:
+    pass
+    '''
     class SimulationFunction:
         """This class representing the simulation function which has been considered as \J_0". This class can be used to calculate the gradient and hessian of the mentioned function. """
 
@@ -72,3 +74,4 @@ else:
 
         def get_optimum_x(self, number_of_nodes):
             return ((1 / (number_of_nodes)) * self.b_sum)
+    '''
