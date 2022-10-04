@@ -10,11 +10,14 @@ from scipy import optimize as opt
 global barrier
 barrier = True
 ###################################################
+def b(pc, N, mu=0.2,  tau=0.025, B=4000):
+    b = -(mu ** (-1)) * (np.log((1 - pc) * (pc - tau * (B / N))))
+    return b
 
 def c(T=20, s=35, z=20):
     return (1449.2 + 4.6 * T - 0.055 * (T ** 2) + 0.00029 * (T ** 3) + (1.34 - 0.01 * T) * (s - 35) + 0.16 * z)
 
-def f(x, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=1e-3, Rc=0.5, mu = 0.2, tau = 0.025):
+def f(x, pc=0.8, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=1e-3, Rc=0.5, mu = 0.2, tau = 0.025):
     """Returns the cost function."""
     m = x[0]
     N = x[1]
@@ -31,7 +34,7 @@ def f(x, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=1e
                 - np.log(m) - np.log(Rc) - np.log(B) - np.log(N / eta)
                 - np.log(np.log2(M)))
 
-def f_b(x, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=1e-3, Rc=0.5, mu = 0.2, tau = 0.025):
+def f_b(x, pc=0.8, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=1e-3, Rc=0.5, mu = 0.2, tau = 0.025):
     """Returns the cost function."""
     m = x[0]
     N = x[1]
@@ -45,7 +48,7 @@ def f_b(x, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=
 
 
 
-def g(x, *, pc=0.25, sea_cond=np.array([12, 35, 40, 300]),toh=1e-3, B=4000, tau=0.025, mu=0.2):
+def g(x, *, pc=0.8, sea_cond=np.array([12, 35, 40, 300]),toh=1e-3, B=4000, tau=0.025, mu=0.2):
     """Returns the gradient of the objective function.
     """
     # Helper variables
@@ -65,7 +68,7 @@ def g(x, *, pc=0.25, sea_cond=np.array([12, 35, 40, 300]),toh=1e-3, B=4000, tau=
     dJdp = -(N * m) / (L + N * m * p)
     return np.array([dJdm, dJdN, dJdM]).T
 
-def h(x, *, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=0.2, tau=0.025):
+def h(x, *, pc=0.8, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=0.2, tau=0.025):
     """Returns the Hessian of the objective function.
     """
     # Helper variables
@@ -92,9 +95,9 @@ def h(x, *, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=
                      [0   ,   0,  d2JdM2]])
 #opt.show_options()
 x0 = [12, 512, 2]
-res = opt.minimize(f, x0, method='Newton-CG', jac=g, hess=h, options={'xtol': 10e-8 ,'disp': True})
+res = opt.minimize(f, x0, method='Newton-CG', jac=g, hess=h,options={'xtol': 10e-8, 'disp': True})
 print(f"final value of OFDM parameters:\n m:{res.x[0]}\n N:{res.x[1]}\n M:{res.x[2]}\n")
-res.fun
+print(f"success: {res.success}\n status:{res.status}")
 
 
 l_b = 0.025 * (4000/res.x[1])
@@ -106,11 +109,11 @@ for pc in pc_range:
     cost.append(f_b(x=res.x, pc=pc))
 plt.plot(pc_range, cost)
 plt.show()
-
+'''
 for N in Nrange:
     x_pass = [res.x[0], N, res.x[2]]
     cost2.append(f_b(x=x_pass))
 plt.plot(Nrange, cost2)
 plt.show()
-
+'''
 
