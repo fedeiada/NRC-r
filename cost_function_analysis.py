@@ -10,10 +10,11 @@ def c(T=20, s=35, z=20):
 
 
 # cost function
-def cost_1(m=12.4471, N=538.9, pc=0.3386, M=1.2, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=1e-3, Rc=0.5):
+def cost_1(m=12.4471, N=800, pc=0.3386, M=1.2, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=1e-3, Rc=0.5, mu=0.2, tau=0.025):
     """Returns the cost function."""
     td = sea_cond[3] / c(sea_cond[0], sea_cond[1], sea_cond[2])
-    return (np.log(m * (1 + pc) * N + B * (toh + td))
+    b = (mu ** (-1)) * (np.log((1 - pc) * (pc - tau * (B / N))))
+    return (-b + np.log(m * (1 + pc) * N + B * (toh + td))
             - np.log(m) - np.log(Rc) - np.log(B) - np.log(N/eta)
             - np.log(np.log2(M)))
 
@@ -72,7 +73,7 @@ plt.show()
 
 
 ################## look at eigenvalues in the optimal point ##############################
-def gradient(m, N, M ,pc, *, sea_cond=np.array([10, 35, 40, 300]),toh=1e-3, B=4000):
+def gradient(m, N, M ,pc, *, sea_cond=np.array([10, 35, 40, 300]),toh=1e-3, B=4000, tau=0.025, mu=0.2 ):
     """Returns the gradient of the objective function.
     """
     # Helper variables
@@ -81,12 +82,12 @@ def gradient(m, N, M ,pc, *, sea_cond=np.array([10, 35, 40, 300]),toh=1e-3, B=40
     L = (toh+td) * B
     p = 1 + pc
     dJdm = -1/m +((N * p)/(L + N*m*p))
-    dJdN = -1/N +((m * p)/(L + N*m*p))
+    dJdN = -1/N +((m * p)/(L + N*m*p)) +(B*tau)/((N**2)*mu*(pc-(B*tau)/N))
     dJdM = -1 / (M * np.log(M))
     dJdp = -(N*m) / (L + N*m*p)
-    return np.array([dJdm, dJdN, dJdM, dJdp]).T
+    return np.array([dJdm, dJdN, dJdM]).T
 
-def hessian(m, N, M ,pc, *, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000):
+def hessian(m, N, M ,pc, *, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, tau=0.025, mu=0.2):
     """Returns the Hessian of the objective function.
     """
     # Helper variables
@@ -96,7 +97,7 @@ def hessian(m, N, M ,pc, *, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=40
     d2Jdm2 = -((N**2)*(p**2))/(L + N*m*p)**2 + 1/m**2
     d2JdmdN = -((N*m)*(p**2))/(L + N*m*p)**2 + p/(L + N*m*p)
     d2Jdmdp = -((N**2)*m*p)/(L + N*m*p)**2 + N/(L + N*m*p)
-    d2JdN2 = -((m**2)*(p**2))/(L + N*m*p)**2 + 1/N**2
+    d2JdN2 = -((m**2)*(p**2))/(L + N*m*p)**2 + 1/N**2 -(B**2*tau**2)/((N**4)*mu*(pc - (B*tau)/N)**2) + (2*B*tau)/((N**3)*mu*(pc - (B*tau)/N))
     d2JdNdp = -(N*(m**2)*p)/(L + N*m*p)**2 + m/(L + N*m*p)
     d2JdM2 =  1/((M**2)*np.log(M)) + 1/((M)**2*np.log(M)**2)
     d2Jdp2 = -((N**2)*(m**2))/(L + N*m*p)**2
@@ -111,9 +112,9 @@ def hessian(m, N, M ,pc, *, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=40
     '''
 
 # optimal point
-m = 12.4262  #25
-N = 540.8211 #220.15
-M = 2 #26.2
+m = 22.4262  #25
+N = 1024.8211 #220.15
+M = 4 #26.2
 pc = 0.3369 #0.2
 grad = gradient(m, N, M, pc)
 hesse = hessian(m, N, M, pc)
