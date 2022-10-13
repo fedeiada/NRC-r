@@ -1,22 +1,25 @@
 '''
-OPTIMIZE using scipy function
+OPTIMIZE using scipy function --> scipy.optimize.minimize
 '''
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import optimize as opt
+import itertools as it
 
 ##### FLAG TO INCLUDE THE BARRIER TERM OR NOT #####
 global barrier
 barrier = False
 ###################################################
-def b(pc, N, mu=0.2,  tau=0.025, B=4000):
-    b = -(mu ** (-1)) * (np.log((1 - pc) * (pc - tau * (B / N))))
+def b(pc, N, mu=0.2,  tau=0.025, B=4000, k=2, v =1):
+    b = -(mu ** (-1)) * (np.log((N - tau*(B/pc)) * ((B / (k *v)) - N)))
     return b
 
+# function that calculate the speed of sound underwater
 def c(T=20, s=35, z=20):
     return (1449.2 + 4.6 * T - 0.055 * (T ** 2) + 0.00029 * (T ** 3) + (1.34 - 0.01 * T) * (s - 35) + 0.16 * z)
 
+# cost function
 def f(x, pc, sea_cond=np.array([12, 35, 20, 300]), eta=1, B=4000, toh=1e-3, Rc=0.5, mu = 0.2, tau = 0.025):
     """Returns the cost function."""
     m = x[0]
@@ -25,8 +28,8 @@ def f(x, pc, sea_cond=np.array([12, 35, 20, 300]), eta=1, B=4000, toh=1e-3, Rc=0
     td = sea_cond[3] / c(sea_cond[0], sea_cond[1], sea_cond[2])
     # add IPM (interior point method) for evaluate pc
     if barrier:
-        b = (mu ** (-1)) * (np.log((1 - pc) * (pc - tau * (B / N))))
-        return (-b + np.log(m * (1 + pc) * N + B * (toh + td))
+        bterm = b(pc, N)
+        return (bterm + np.log(m * (1 + pc) * N + B * (toh + td))
                 - np.log(m) - np.log(Rc) - np.log(B) - np.log(N / eta)
                 - np.log(np.log2(M)))
     else:
@@ -34,6 +37,7 @@ def f(x, pc, sea_cond=np.array([12, 35, 20, 300]), eta=1, B=4000, toh=1e-3, Rc=0
                 - np.log(m) - np.log(Rc) - np.log(B) - np.log(N / eta)
                 - np.log(np.log2(M)))
 
+# cost function with the barrier term always added
 def f_b(x, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=1e-3, Rc=0.5, mu = 0.2, tau = 0.025):
     """Returns the cost function."""
     m = x[0]
@@ -41,13 +45,13 @@ def f_b(x, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=
     M = x[2]
     td = sea_cond[3] / c(sea_cond[0], sea_cond[1], sea_cond[2])
     # add IPM (interior point method) for evaluate pc
-    b = (mu ** (-1)) * (np.log((1 - pc) * (pc - tau * (B / N))))
-    return (-b + np.log(m * (1 + pc) * N + B * (toh + td))
+    bterm = b(pc, N)
+    return (-bterm + np.log(m * (1 + pc) * N + B * (toh + td))
            - np.log(m) - np.log(Rc) - np.log(B) - np.log(N / eta)
            - np.log(np.log2(M)))
 
 
-
+# gradient of J0
 def g(x, pc, sea_cond=np.array([12, 35, 40, 300]),toh=1e-3, B=4000, tau=0.025, mu=0.2):
     """Returns the gradient of the objective function.
     """
@@ -59,8 +63,8 @@ def g(x, pc, sea_cond=np.array([12, 35, 40, 300]),toh=1e-3, B=4000, tau=0.025, m
     L = (toh+td) * B
     p = 1 + pc
     if barrier:
-        b = (B*tau)/((N**2)*mu*(pc-(B*tau)/N)) # barrier term
-        dJdN = -1 / N + ((m * p) / (L + N * m * p)) + b
+        b = (B/(k*v) - 2*N + (B*tau)/pc)/(mu*(N - (tau*B)/pc)*(N - B/(k*v))) # barrier term
+        dJdN = -1 / N + ((m * p) / (L + N * m * p)) - b
     else:
         dJdN = -1 / N + ((m * p) / (L + N * m * p))
     dJdm = -1/m + ((N * p)/(L + N*m*p))
@@ -68,7 +72,8 @@ def g(x, pc, sea_cond=np.array([12, 35, 40, 300]),toh=1e-3, B=4000, tau=0.025, m
     dJdp = -(N * m) / (L + N * m * p)
     return np.array([dJdm, dJdN, dJdM]).T
 
-def h(x, *, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=0.2, tau=0.025):
+# hessian of J0
+def h(x, pc,*, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=0.2, tau=0.025):
     """Returns the Hessian of the objective function.
     """
     # Helper variables
@@ -79,7 +84,7 @@ def h(x, *, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=
     L = (toh + td) * B
     p = 1 + pc
     if barrier:
-        b = ((B**2)*(tau**2))/((N**4)*mu*(pc - (B*tau)/N)**2) + (2*B*tau)/((N**3)*mu*(pc - (B*tau)/N)) # barrier term
+        b = 2/(mu*(N - (B*tau)/pc)*(N - B/(k*v))) + (B/(k*v) - 2*N + (B*tau)/pc)/(mu*(N - (B*tau)/pc)*(N - B/(k*v))**2) + (B/(k*v) - 2*N + (B*tau)/pc)/(mu*(N - (B*tau)/pc)**2*(N - B/(k*v)))
         d2JdN2 = -((m ** 2) * (p ** 2)) / (L + N * m * p) ** 2 + (1 / (N ** 2)) - b
     else:
         d2JdN2 = -((m ** 2) * (p ** 2)) / (L + N * m * p) ** 2 + 1 / N ** 2
@@ -93,7 +98,9 @@ def h(x, *, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=
     return np.array([[d2Jdm2, d2JdmdN,  0],
                      [d2JdmdN, d2JdN2,  0],
                      [0   ,   0,  d2JdM2]])
-def fun_update(xk):
+
+# callback function: save the actual cost at the k-th iteration
+def fun_update(xk, opt):
     fun_evolution.append(f(xk, pc))
 
 
@@ -103,63 +110,112 @@ def fun_update(xk):
 x0 = [12, 512, 2]
 Nx = 64  # Non-data subcarriers
 B = 4000   # Bandwidth
-k = 2  # rel doppler margin
+k = 2  # rel doppler margin (3) not higher than 5 or under 1
 v = 1  # doppler spread (hz)
 tau = 0.025  # delay spread (s)
 pc = 0.25  # cyclic prefix
-bnds = ((1, None), (tau*B/pc, B/(k*v)), (2, None))
+
+if barrier:
+    bnds = ((1, None), (None, None), (2, None))
+else:
+    bnds = ((1, None), (tau*B/pc, B/(k*v)), (2, None))
 fun_evolution = []
-res = opt.minimize(f, x0, args=(pc), callback=fun_update, bounds=bnds, jac=g, options={'maxiter':40, 'ftol': 10e-6, 'disp': False}) #fun_update(fun_evolution),
+cons = ({'type': 'ineq', 'fun': lambda x: -(np.log(x[0]) + np.log(x[1]) + np.log(np.log2(x[2]))+2*(np.log(0.2)-((3*100)/(2*(x[2]-1))))-np.log(0.1))})       # prob_loss = 0.1, eta = 1, Rc=0.5
+res = opt.minimize(f,
+                   x0,
+                   args=(pc),
+                   method='trust-constr',
+                   constraints=cons,
+                   bounds=bnds,
+                   callback=fun_update,
+                   jac=g,
+                   hess=h,
+                   tol=1e-3,
+                   options={'maxiter':2000, 'disp': True})
+
+'''
+Quantization: need quantized value. round the result and evaluate if it's better take the upper or lower value
+'''
+
+
+
+
 print(f"final value of OFDM parameters:\n m:{res.x[0]}\n N:{res.x[1]}\n M:{res.x[2]}\n")
 print(f"success: {res.success}\n status:{res.message}\n")
 
 #evolution of the cost function
 plt.plot(range(res.nit), fun_evolution)
+plt.xlabel('Number of iterations')
+plt.ylabel('cost function')
 plt.grid()
 plt.show()
 
-'''
+
+# make some plot ranging different possible values of the cyclic prefix 
 fun = []
 m = []
 N = []
 M = []
-pcrange = np.arange(0.1, 1.05, 0.05)
+pcrange = np.linspace(0.1, 1, 50)
 for p_c in pcrange:
-    bnds = ((1, None), (tau * B / p_c, B / (k * v)), (2, None))
-    res = opt.minimize(f, x0, args=(p_c), bounds=bnds, jac=g, options={'maxiter': 40, 'ftol': 10e-6, 'disp': False})
-    fun.append(res.fun)
-    m.append(res.x[0])
-    N.append(res.x[1])
-    M.append(res.x[2])
+    bnds = ((1, None), (tau * B/p_c, B/(k * v)), (2, None))
+    cons = ({'type': 'ineq', 'fun': lambda x: -(np.log(x[0]) + np.log(x[1]) + np.log(np.log2(x[2])) + 2 * (np.log(0.2) - ((3 * 100) / (2 * (x[2] - 1)))) - np.log(0.1))})  # prob_loss = 0.1, eta = 1, Rc=0.5
+    #res2 = opt.minimize(f, x0, args=(pc), method='SLSQP', callback=fun_update, constraints=cons, bounds=bnds, jac=g, options={'maxiter': 40, 'ftol': 10e-8, 'disp': True})
+
+    res2 = opt.minimize(f,
+                        x0,
+                        args=(p_c),
+                        method='trust-constr',
+                        constraints=cons,
+                        bounds=bnds,
+                        jac=g,
+                        hess=h,
+                        tol=1e-3,
+                        options={'maxiter': 1500, 'disp': False})
+    fun.append(res2.fun)
+    m.append(res2.x[0])
+    N.append(res2.x[1])
+    M.append(res2.x[2])
 
 # plot comparing ranging of pc
-fig, axs = plt.subplots(2,2, figsize=(13, 8))
+fig, axs = plt.subplots(2, 2, figsize=(13, 8))
 fig.suptitle('ranging of value with different cyclic prefix')
 axs[0,0].plot(pcrange, fun)
-axs[0,0].set_title('cost function')
+axs[0,0].set_xlabel('pc')
+axs[0,0].set_ylabel('J0')
 axs[0,1].plot(pcrange, m)
-axs[0,1].set_title('m')
+axs[0,1].set_xlabel('pc')
+axs[0,1].set_ylabel('m')
 axs[1,0].plot(pcrange, N)
-axs[1,0].set_title('N')
+axs[1,0].set_xlabel('pc')
+axs[1,0].set_ylabel('N')
 axs[1,1].plot(pcrange, M)
-axs[1,1].set_title('M')
+axs[1,1].set_xlabel('pc')
+axs[1,1].set_ylabel('M')
 plt.savefig('multiplot.png')
 plt.show()
 
 # plot comparing evolution of cost/optimization variable
-fig, axs = plt.subplots(3,1, figsize=(13, 8))
-fig.suptitle('ranging of value with different cyclic prefix')
+fig, axs = plt.subplots(3, 1, figsize=(13, 8), sharex=True)
+fig.suptitle('ranging of OFDM value with different cyclic prefix over different J0')
 axs[0].plot(fun, m,)
-axs[0].set_title('m')
+axs[0].set_ylabel('m')
 axs[1].plot(fun, N)
-axs[1].set_title('N')
+axs[1].set_ylabel('N')
 axs[2].plot(fun, M)
-axs[2].set_title('M')
+axs[2].set_ylabel('M')
+axs[0].grid()
+axs[1].grid()
+axs[2].grid()
+plt.xlabel('J0')
 #plt.savefig('multiplot.png')
 plt.show()
 
+#'''
 #opt.show_options(solver='minimize', method='L-BFGS-B')
 
+'''
+# unbounded optimization with Newton-CG
 res = opt.minimize(f, x0, method='Newton-CG', jac=g, hess=h ,options={'maxiter':40, 'xtol': 10e-5, 'disp': True})
 print(f"final value of OFDM parameters:\n m:{res.x[0]}\n N:{res.x[1]}\n M:{res.x[2]}\n")
 print(f"success: {res.success}\n status:{res.message}")
