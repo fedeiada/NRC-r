@@ -13,7 +13,7 @@ def c(T=20, s=35, z=20):
 def cost_1(m=12.4471, N=800, pc=0.3386, M=1.2, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=1e-3, Rc=0.5, mu=0.2, tau=0.025):
     """Returns the cost function."""
     td = sea_cond[3] / c(sea_cond[0], sea_cond[1], sea_cond[2])
-    b = (mu ** (-1)) * (np.log((1 - pc) * (pc - tau * (B / N))))
+    b = (mu ** (-1)) * (np.log(-(m*(N/eta)*np.log2(M)*0.2*np.exp(-(3*100)/(2*(M-1)*0.5))-0.1)))
     return (-b + np.log(m * (1 + pc) * N + B * (toh + td))
             - np.log(m) - np.log(Rc) - np.log(B) - np.log(N/eta)
             - np.log(np.log2(M)))
@@ -31,6 +31,11 @@ def cost_2(m=3, N=512, pc=0.25, M=4, sea_cond=np.array([12, 35, 20, 300]), *, et
     return (np.log(m * (1 + pc) * N + B * (toh + td))
             - np.log(m) - np.log(Rc) - np.log(B) - np.log(N /eta)
             - np.log(np.log2(M)) + np.log(1 + (u[0] * tau * delta_f + u[1] ** ni * k + u[2] * Pn)))
+
+def cost_3(m=3, N=512, M=4, eta=1):
+    """Returns the cost function."""
+    return (np.log(-(m*(N/eta)*np.log2(M)*0.2*np.exp(-(3*100)/(2*(M-1)*0.5))-0.1)))
+
 
 
 ################################################
@@ -52,18 +57,24 @@ Mrange = 2 ** np.arange(1, 10)
 mrange = np.arange(1, 41)
 Nrange = 2 ** np.arange(3, 16)
 pcrange = np.linspace(0, 1)
-Mrange = 2 ** np.arange(1, 13)
+Mrange = 2 ** np.arange(1, 10)
 plt.figure(figsize=[11.2, 8.4])
 # Collect all variables in lists
 xlabs = ['Packet count $m$', 'Subcarrier count $N$',
-         'Cyclic prefix fraction $p_c$', 'Constellation size $M$',
+         #'Cyclic prefix fraction $p_c$',
+         'Constellation size $M$',
          'TX power $p_{tx}$ (dB re. 1 µPa @ 1 m)']
-rngs = [mrange, Nrange, pcrange, Mrange]
-kws = [{'m': mrange}, {'N': Nrange}, {'pc': pcrange}, {'M': Mrange}]
+rngs = [mrange, Nrange,
+        #pcrange,
+        Mrange]
+kws = [{'m': mrange},
+       {'N': Nrange},
+       #{'pc': pcrange},
+       {'M': Mrange}]
 
-for it in range(4):
+for it in range(3):
     plt.subplot(2, 2, it + 1)
-    plt.plot(rngs[it], cost_1(**kws[it], sea_cond=params))
+    plt.plot(rngs[it], cost_1(**kws[it])) # ,sea_cond=params))
     plt.xlabel(xlabs[it])
     plt.xscale('log' if it % 2 == 1 else 'linear')
     plt.grid()

@@ -7,7 +7,7 @@ import numpy as np
 
 simulation_specification: SimulationSpecification
 network_graph: NetworkGraph
-
+sys.setrecursionlimit(2000)
 
 class Simulation:
     """This class representing the simulation and actin as the main class for calling other classes and methods to
@@ -55,6 +55,10 @@ class Simulation:
         axs[1].grid()
         plt.savefig('books_read.png')
         plt.show()
+
+        for j in range(simulation.simulation_specification.number_of_nodes):
+            print(simulation.network_graph.nodes[j].all_calculated_xis[-1])
+
 
     def wait_until_result_founded(self) -> None:
         is_all_dif_accepted = False

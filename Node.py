@@ -3,7 +3,8 @@ import threading
 import time
 import numpy as np
 from Message import *
-
+import sys
+sys.setrecursionlimit(2000)
 '''
 Modification:
 1) pass c
@@ -28,7 +29,12 @@ class Node(threading.Thread):
         self.node_id = node_id
         self.epsilon = epsilon
         #self.c = c
-        self.xi = np.array(x0) + np.random.uniform(-1, 1, x0.size)
+        self.xi = np.array(x0)  # + np.random.uniform(-1, 1, x0.size)
+        ###### MODIFY INITIAL CONDITION #####
+        self.xi[0] = self.xi[0] + np.random.randint(-1, 2)
+        self.xi[1] = self.xi[1] + np.random.randint(-100, 100)
+        self.xi[2] = self.xi[2] + np.random.randint(-1, 4)
+
         self.all_calculated_xis = []
         self.function_constants = function_constants
         self.simulation_function_xtx_btx = simulation_function_xtx_btx
@@ -75,19 +81,19 @@ class Node(threading.Thread):
             self.yi = (1 / (self.number_of_neighbors + 1)) * self.yi
             self.zi = self.zi / (self.number_of_neighbors + 1)
 
-            self.sigma_yi += self.yi
-            self.sigma_zi += self.zi
+            self.sigma_yi = self.sigma_yi + self.yi
+            self.sigma_zi = self.sigma_zi + self.zi
 
-            '''
+
             if random.randrange(0, 9, 1) == 2:  # 1/10 chance to loss message
                 self.msg_rel = False
                 print("message LOST")
-            '''
 
+            '''
             if random.randrange(0, 9, 1)%2 == 0:  # 1/2 chance to loss message
                 self.msg_rel = False
                 print("message LOST")
-
+            '''
 
             message = Message(self.node_id, self.sigma_yi, self.sigma_zi, self.msg_rel)
             self.broadcast(message)
@@ -156,8 +162,7 @@ class Node(threading.Thread):
             self.hi_old = self.hi
 
             self.hi = self.simulation_function_xtx_btx.get_hessian_fn(self.xi)
-            self.gi = np.subtract(np.matmul(self.hi, self.xi),
-                                  self.simulation_function_xtx_btx.get_gradient_fn(self.xi, self.function_constants))
+            self.gi = np.subtract(np.matmul(self.hi, self.xi), self.simulation_function_xtx_btx.get_gradient_fn(self.xi))
 
             self.yi = self.yi + self.gi - self.gi_old
             self.zi = self.zi + self.hi - self.hi_old
@@ -170,7 +175,7 @@ class Node(threading.Thread):
     def has_result_founded(self):
         """This method will check and verify if the calculated xi in this node has sufficiently converged. If for the
         last calculated xi, the difference between xi and x(i-1) is less than minimum accepted divergence that has
-        been provided by the user, then the it would be considered that calculated xi has enough convergence to its
+        been provided by the user, then it would be considered that calculated xi has enough convergence to its
         target value. """
         self.is_convergence_sufficient = False
         if len(self.all_calculated_xis) > 10:

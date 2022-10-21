@@ -9,7 +9,6 @@ import SimulationSpecification
 from Node import *
 
 
-# from Node import Node
 '''
 Modified:
 1) pass c in node creation

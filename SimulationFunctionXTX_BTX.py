@@ -1,6 +1,6 @@
 import numpy
 
-if True:        # select the simulation function
+if False:        # select the simulation function
     class SimulationFunctionXTX_BTX:
         """This class representing the simulation function which has been considered as \"Transpose(X) * A * X +Bi * X
           (Assumed A=2*In in)\". This class can be used to calculate the gradient and hessian of the mentioned function. """
@@ -31,47 +31,55 @@ if True:        # select the simulation function
         def get_optimum_x(self,number_of_nodes):
             return ((1/( number_of_nodes)) * self.b_sum)
 else:
-    pass
-    '''
-    class SimulationFunction:
+    class SimulationFunctionXTX_BTX:
         """This class representing the simulation function which has been considered as \J_0". This class can be used to calculate the gradient and hessian of the mentioned function. """
 
         def __init__(self, b_sum):
             self.b_sum = b_sum
 
         @staticmethod
-        def get_fn(x: numpy.array, B, toh, Rc, Nx) -> numpy.array:
+        def get_fn(x: numpy.array, pc=0.25, sea_cond=numpy.array([12, 40, 20, 300]),B=4000, toh=10e-3, Rc=0.5, eta=1) -> numpy.array:
             """This method can be used to calculate the outcome of the function for each given Xi and Bi. X = [n, N, M, pc]"""
-            m = x[0]; N = x[1]; M = x[2]; pc = x[3]
-            f = numpy.log(m*(1+pc)*N + B*toh)- numpy.log(m) - numpy.log(Rc) - numpy.log(B) - numpy.log(N-Nx)- numpy.log(numpy.log2(M))
+            m = x[0]
+            N = x[1]
+            M = x[2]
+            td = sea_cond[3] / (1449.2 + 4.6 * sea_cond[0] - 0.055 * (sea_cond[0] ** 2) + 0.00029 * (sea_cond[0] ** 3)
+                                +(1.34 - 0.01 * sea_cond[0]) * (sea_cond[1] - 35) + 0.16 * sea_cond[2])
+            f = numpy.log(m*(1+pc)*N + B*toh+td) - numpy.log(m) - numpy.log(Rc) - numpy.log(B) - numpy.log(N/eta)\
+                - numpy.log(numpy.log2(M))
             return f
 
         @staticmethod
-        def get_gradient_fn(x: numpy.array, B, toh, Nx) -> numpy.array:
+        def get_gradient_fn(x: numpy.array, pc=0.25, sea_cond=numpy.array([12, 40, 20, 300]), toh=1e-3, B=4000, eta=1, mu=0.2) -> numpy.array:
             """This method can be used to calculate the gradient for any given Xi."""
-            m = x[0];N = x[1];M = x[2];pc = x[3]
-            djdm = 1/m - N*(1 + pc) / (m*( 1 + pc)*N + B * toh)
-            djdN = 1 / (N - Nx) + N*(1 + pc) / (m*( 1 + pc) + B * toh)
-            djdM = 1 / (M * numpy.log(M))
-            djdpc = - (m * N) / ( m*(1+pc)*N + B*toh)
-            return numpy.array([djdm, djdN, djdM, djdpc]).T
+            m = x[0]; N = x[1]; M = x[2];
+            td = sea_cond[3] / (1449.2 + 4.6 * sea_cond[0] - 0.055 * (sea_cond[0] ** 2) + 0.00029 * (sea_cond[0] ** 3)
+                                +(1.34 - 0.01 * sea_cond[0]) * (sea_cond[1] - 35) + 0.16 * sea_cond[2])
+            djdm = -1/m + (N*(1 + pc)) / (m*( 1 + pc)*N + B * (toh+td)) + \
+                   (N*numpy.exp(-300/(M - 1))*numpy.log(M))/(5*eta*mu*numpy.log(2)*((N*m*numpy.exp(-300/(M - 1))*numpy.log(M))/(5*eta*numpy.log(2)) - 1/10))
+            djdN = -1 / N + m*(1 + pc) / (m*( 1 + pc)*N + B * (toh+td)) + \
+                   (m*numpy.exp(-300/(M - 1))*numpy.log(M))/(5*eta*mu*numpy.log(2)*((N*m*numpy.exp(-300/(M - 1))*numpy.log(M))/(5*eta*numpy.log(2)) - 1/10))
+            djdM = - 1 / (M * numpy.log(M)) + (
+                    (N*m*numpy.exp(-300/(M - 1)))/(5*M*eta*numpy.log(2)) + (60*N*m*numpy.exp(-300/(M - 1))*numpy.log(M))/(eta*numpy.log(2)*(M - 1)**2))/(mu*((N*m*numpy.exp(-300/(M - 1))*numpy.log(M))/(5*eta*numpy.log(2)) - 1/10))
+            return numpy.array([djdm, djdN, djdM])
 
         @staticmethod
-        def get_hessian_fn(x: numpy.array, B, toh, Nx) -> numpy.array:
+        def get_hessian_fn(x: numpy.array, pc=0.25,*, sea_cond=numpy.array([12, 40, 20, 300]), toh=1e-3, B=4000) -> numpy.array:
             """This method can be used to calculate the hessian for any given Xi."""
-            m = x[0];N = x[1];M = x[2];pc = x[3]
-            d2Jdm2 = -1/m^2 + (m^2*(1+pc^2)^2)/((m*(1+pc)*N) + B*toh)^2
-            d2JdmdN = -((1+pc)*(m*(1+pc)+B*toh)-(m*(1+pc)^2))/(m*(1+pc) + B*toh)^2
-            d2Jdmdpc = -(N*(m*(1+pc)*N + B*toh)-m*(N^2)*(1+pc))/(m*(1+pc)*N + B*toh)^2
-            d2JdN2 = - 1/(N - Nx)^2
-            d2JdNdp = -(m*(m*(1+pc)*N + B*toh)-N*(m^2)*(1+pc))/(m*(1+pc)*N + B*toh)^2
-            d2JdM2 = - (numpy.log(M)+1)/((M*numpy.log(M))^2)
-            d2Jdp2 = (m^2*N^2)/((m*(1+pc)*N + B*toh)^2)
-            return numpy.array([[d2Jdm2,  d2JdmdN, 0,   d2Jdmdpc],
-                                [d2JdmdN, d2JdN2,  0,    d2JdNdp]
-                                [0      ,     0, d2JdM2,    0   ],
-                                [d2Jdmdpc, d2JdNdp, 0 ,   d2Jdp2]])
+            m = x[0]
+            N = x[1]
+            M = x[2]
+            td = sea_cond[3] / (1449.2 + 4.6 * sea_cond[0] - 0.055 * (sea_cond[0] ** 2) + 0.00029 * (sea_cond[0] ** 3)
+                                +(1.34 - 0.01 * sea_cond[0]) * (sea_cond[1] - 35) + 0.16 * sea_cond[2])
+            L = (toh + td) * B
+            p = 1 + pc
+            d2Jdm2 = -((N ** 2) * (p ** 2)) / (L + N * m * p) ** 2 + 1 / m ** 2
+            d2JdN2 = -((m ** 2) * (p ** 2)) / (L + N * m * p) ** 2 + 1 / N ** 2
+            d2JdmdN = -((N * m) * (p ** 2)) / (L + N * m * p) ** 2 + p / (L + N * m * p)
+            d2JdM2 = 1 / ((M ** 2) * numpy.log(M)) + 1 / ((M) ** 2 * numpy.log(M) ** 2)
+            return numpy.array([[d2Jdm2, d2JdmdN, 0],
+                               [d2JdmdN, d2JdN2,  0],
+                               [0,         0, d2JdM2]])
 
         def get_optimum_x(self, number_of_nodes):
-            return ((1 / (number_of_nodes)) * self.b_sum)
-    '''
+             return ((1 / (number_of_nodes)) * self.b_sum)
