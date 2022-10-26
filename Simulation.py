@@ -57,7 +57,7 @@ class Simulation:
         plt.show()
 
         for j in range(simulation.simulation_specification.number_of_nodes):
-            print(simulation.network_graph.nodes[j].all_calculated_xis[-1])
+            print(simulation.network_graph.nodes[j].xi)
 
 
     def wait_until_result_founded(self) -> None:
@@ -84,6 +84,7 @@ simulation.network_graph.draw_graph()
 for i in range(len(simulation.network_graph.nodes)):
     simulation.network_graph.nodes[i].daemon = True
     simulation.network_graph.nodes[i].start()
+
 
 # Continue the simulation until all nodes reach a consensus estimation about the target xi:
 simulation.wait_until_result_founded()

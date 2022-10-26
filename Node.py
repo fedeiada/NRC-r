@@ -30,10 +30,18 @@ class Node(threading.Thread):
         self.epsilon = epsilon
         #self.c = c
         self.xi = np.array(x0)  # + np.random.uniform(-1, 1, x0.size)
+
+
         ###### MODIFY INITIAL CONDITION #####
-        self.xi[0] = self.xi[0] + np.random.randint(-1, 2)
+        self.xi[0] = self.xi[0] + np.random.randint(-1, 3)
         self.xi[1] = self.xi[1] + np.random.randint(-100, 100)
         self.xi[2] = self.xi[2] + np.random.randint(-1, 4)
+
+
+        if self.node_id==0:
+            self.sea_condition = np.array([16, 30, 20, 300])
+        else:
+            self.sea_condition = np.array([11, 40, 40, 300])
 
         self.all_calculated_xis = []
         self.function_constants = function_constants
@@ -85,7 +93,7 @@ class Node(threading.Thread):
             self.sigma_zi = self.sigma_zi + self.zi
 
 
-            if random.randrange(0, 9, 1) == 2:  # 1/10 chance to loss message
+            if random.randrange(0, 9, 1) == 11:  # 1/10 chance to loss message
                 self.msg_rel = False
                 print("message LOST")
 
@@ -157,6 +165,25 @@ class Node(threading.Thread):
 
             self.xi = (1 - self.epsilon) * self.xi + np.matmul((self.epsilon * np.linalg.inv(self.zi)),
                                                                np.transpose(self.yi))
+
+            '''####### BOUNDARY PROJECTION #########
+             2<=m<=20, tau*B/pc<=N<=B/(k*v), 4<=M<=64 '''
+            if not self.xi[0] >= 2 and self.xi[0] <= 20:    # check m
+                if self.xi[0] <= 2:
+                    self.xi[0] = 2
+                else:
+                    self.xi[0] = 20
+            if not self.xi[1] >= 400 and self.xi[1] <= 2000:    # check N
+                if self.xi[1] <= 400:
+                    self.xi[1] = 400
+                else:
+                    self.xi[1] = 2000
+            if not self.xi[2] >= 2 and self.xi[2] <= 32:    # check M
+                if self.xi[2] <= 2:
+                    self.xi[2] = 2
+                else:
+                    self.xi[2] = 32
+
 
             self.gi_old = self.gi
             self.hi_old = self.hi

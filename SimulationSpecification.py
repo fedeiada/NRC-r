@@ -30,7 +30,7 @@ class SimulationSpecification:
     def set_x0(self):
         """Start point (X0) should be specified as a list. Ex. [1,1,2]"""
 
-        self.x0 = np.array([12, 512, 4])
+        self.x0 = np.array([12, 512, 5])
 
         # Please comment the hard coded value and uncomment the following code if inserting the start point from
         # console is preferred
@@ -81,7 +81,7 @@ class SimulationSpecification:
         """Minimum accepted divergence should be specified. This value will be used to evaluate if calculated xi has
         converged sufficiently or not. """
 
-        self.min_accepted_divergence = 0.001
+        self.min_accepted_divergence = 0.1
 
         # Please comment the hard coded value and uncomment the following code if inserting the start point from
         # console is preferred

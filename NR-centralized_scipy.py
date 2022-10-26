@@ -13,7 +13,7 @@ global barrier
 barrier = True
 ###################################################
 def b(m, N, M, mu=0.2, eta=1):
-    b = -(mu ** (-1)) * (np.log(-(m*(N/eta)*np.log2(M)*0.2*np.exp(-(3*100)/(2*(M-1)*0.5))-0.1)*10))
+    b = -(mu ** (-1)) * (np.log(-(m*(N/eta)*np.log2(M)*0.2*np.exp(-(3*100)/(2*(M-1)*0.5))-0.1)))
     return b
 
 # function that calculate the speed of sound underwater
@@ -38,19 +38,6 @@ def f(x, pc, sea_cond=np.array([12, 35, 20, 300]), eta=1, B=4000, toh=1e-3, Rc=0
                 - np.log(m) - np.log(Rc) - np.log(B) - np.log(N / eta)
                 - np.log(np.log2(M)))
 
-# cost function with the barrier term always added
-def f_b(x, pc=0.25, sea_cond=np.array([12, 35, 20, 300]), *, eta=1, B=4000, toh=1e-3, Rc=0.5, mu = 0.2, tau = 0.025):
-    """Returns the cost function."""
-    m = x[0]
-    N = x[1]
-    M = x[2]
-    td = sea_cond[3] / c(sea_cond[0], sea_cond[1], sea_cond[2])
-    # add IPM (interior point method) for evaluate pc
-    bterm = b(pc, N)
-    return (-bterm + np.log(m * (1 + pc) * N + B * (toh + td))
-           - np.log(m) - np.log(Rc) - np.log(B) - np.log(N / eta)
-           - np.log(np.log2(M)))
-
 
 # gradient of J0
 def g(x, pc, sea_cond=np.array([12, 35, 40, 300]),toh=1e-3, B=4000, eta=0.2, mu=0.2):
@@ -64,13 +51,12 @@ def g(x, pc, sea_cond=np.array([12, 35, 40, 300]),toh=1e-3, B=4000, eta=0.2, mu=
     L = (toh+td) * B
     p = 1 + pc
     if barrier:
-        b = (m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*mu*np.log(2)*((N*m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10))
-        dJdN = -1 / N + ((m * p) / (L + N * m * p)) + b
-        dJdm = -1 / m + ((N * p) / (L + N * m * p)) + (N * np.exp(-300 / (M - 1)) * np.log(M)) / (
-                    5 * eta * mu * np.log(2) * (
-                        (N * m * np.exp(-300 / (M - 1)) * np.log(M)) / (5 * eta * np.log(2)) - 1 / 10))
-        dJdM = -1 / (M * np.log(M)) + ((N * m * np.exp(-300 / (M - 1))) / (5 * M * eta * np.log(2)) + (
-                    60 * N * m * np.exp(-300 / (M - 1)) * np.log(M)) / (eta * np.log(2) * (M - 1) ** 2)) / (
+        dJdN = -1 / N + ((m * p) / (L + N * m * p)) + \
+               (m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*mu*np.log(2)*((N*m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10))
+        dJdm = -1 / m + ((N * p) / (L + N * m * p)) + \
+               (N * np.exp(-300 / (M - 1)) * np.log(M)) / (5 * eta * mu * np.log(2) * ((N * m * np.exp(-300 / (M - 1)) * np.log(M)) / (5 * eta * np.log(0.2)) - 1 / 10))
+        dJdM = -1 / (M * np.log(M)) + \
+               ((N * m * np.exp(-300 / (M - 1))) / (5 * M * eta * np.log(2)) + (60 * N * m * np.exp(-300 / (M - 1)) * np.log(M)) / (eta * np.log(2) * ((M - 1) ** 2))) / (
                            mu * ((N * m * np.exp(-300 / (M - 1)) * np.log(M)) / (5 * eta * np.log(2)) - 1 / 10))
 
     else:
@@ -80,7 +66,7 @@ def g(x, pc, sea_cond=np.array([12, 35, 40, 300]),toh=1e-3, B=4000, eta=0.2, mu=
     return np.array([dJdm, dJdN, dJdM]).T
 
 # hessian of J0
-def h(x, pc,*, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=0.2, tau=0.025, eta=1):
+def h(x, pc,*, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=0.2, tau=0.025, eta=1, Rc=0.5, pb=0.1):
     """Returns the Hessian of the objective function.
     """
     # Helper variables
@@ -91,28 +77,22 @@ def h(x, pc,*, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=0.2, t
     L = (toh + td) * B
     p = 1 + pc
     if barrier:
-        d2Jdm2 = -((N ** 2) * (p ** 2)) / (L + N * m * p) ** 2 + 1 / m ** 2 - \
-                 (N ** 2 * np.exp(-600 / (M - 1)) * np.log(M) ** 2) / (25 * eta ** 2 * mu * np.log(2) ** 2 * (
-                    (N * m * np.exp(-300 / (M - 1)) * np.log(M)) / (5 * eta * np.log(2)) - 1 / 10) ** 2)
+        d2Jdm2 = -((N ** 2) * (p ** 2)) / ((L + N * m * p) ** 2) + 1 / (m ** 2) + \
+                 (400*(N**2)*np.exp((20*N*m*np.exp(-300/(Rc*2*(M - 1)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-600/(Rc*2*(M - 1)))*(np.log(M)**2))/((eta**2)*(np.log(2)**2))
         d2JdmdN = -((N * m) * (p ** 2)) / (L + N * m * p) ** 2 + p / (L + N * m * p) + \
-                  (np.exp(-300 / (M - 1)) * np.log(M)) / (5 * eta * mu * np.log(2) * (
-                    (N * m * np.exp(-300 / (M - 1)) * np.log(M)) / (5 * eta * np.log(2)) - 1 / 10)) - (
-                   N * m * np.exp(-600 / (M - 1)) * np.log(M) ** 2) / (
-                    25 * eta ** 2 * mu * np.log(2) ** 2 * (
-                     (N * m * np.exp(-300 / (M - 1)) * np.log(M)) / (5 * eta * np.log(2)) - 1 / 10) ** 2)
-        d2JdmdM = (N*np.exp(-300/(M - 1)))/(5*M*eta*mu*np.log(2)*((N*m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10)) - \
-                  (N*np.exp(-300/(M - 1))*np.log(M)*((N*m*np.exp(-300/(M - 1)))/(5*M*eta*np.log(2)) +
-                  (60*N*m*np.exp(-300/(M - 1))*np.log(M))/(eta*np.log(2)*(M - 1)**2)))/(5*eta*mu*np.log(2)*((N*m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10)**2) + (60*N*np.exp(-300/(M - 1))*np.log(M))/(eta*mu*np.log(2)*((N*m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10)*(M - 1)**2)
-        d2JdN2 = -((m ** 2) * (p ** 2)) / (L + N * m * p) ** 2 + (1 / (N ** 2)) - \
-                 (m**2*np.exp(-600/(M - 1))*np.log(M)**2)/(25*eta**2*mu*np.log(2)**2*((N*m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10)**2)
-        d2JdNdM = (m*np.exp(-300/(M - 1)))/(5*M*eta*mu*np.log(2)*((N*m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10)) - \
-                  (N*np.exp(-300/(M - 1))*np.log(M)*((N*m*np.exp(-300/(M - 1)))/(5*M*eta*np.log(2)) +
-                  (60*N*m*np.exp(-300/(M - 1))*np.log(M))/(eta*np.log(2)*(M - 1)**2)))/(5*eta*mu*np.log(2)*((N*m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10)**2) + (60*N*np.exp(-300/(M - 1))*np.log(M))/(eta*mu*np.log(2)*((N*m*
-                                                                                                                                                                                                                                           np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10)*(M - 1)**2)
-        d2JdM2 = 1 / ((M ** 2) * np.log(M)) + 1 / ((M) ** 2 * np.log(M) ** 2) - \
-                 ((N*m*np.exp(-300/(M - 1)))/(5*M*eta*np.log(2)) + (60*N*m*np.exp(-300/(M - 1))*np.log(M))/(eta*np.log(2)*(M - 1)**2))**2/(mu*((N*m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10)**2) -\
-                 ((N*m*np.exp(-300/(M - 1)))/(5*M**2*eta*np.log(2)) - (120*N*m*np.exp(-300/(M - 1)))/(M*eta*np.log(2)*(M - 1)**2) + (120*N*m*np.exp(-300/(M - 1))*np.log(M))/(eta*np.log(2)*(M - 1)**3) - (18000*N*m*np.exp(-300/(M - 1))*np.log(M))/(eta*np.log(2)*(M - 1)*4))/(mu*((N*
-                                                                                                                                                                                                                                                                          m*np.exp(-300/(M - 1))*np.log(M))/(5*eta*np.log(2)) - 1/10))
+                  (20 * np.exp((20 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (eta * np.log(2)) - 100 * pb) * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (eta * np.log(2)) +\
+                  (400*N*m*np.exp((20*N*m*np.exp(-300/(Rc*2*(M - 1)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-600/(Rc*2*(M - 1)))*(np.log(M)**2))/((eta**2)*(np.log(2)**2))
+        d2JdmdM = (20*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2))))/(M*eta*np.log(2)) + \
+                  (20*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M)*((20*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M*eta*np.log(2)) +
+                  (12000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2)))/(eta*np.log(2)) + (12000*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2)
+        d2JdN2 = -((m ** 2) * (p ** 2)) / ((L + N * m * p) ** 2) + (1 / (N ** 2)) + \
+                 (400 * (m**2) * np.exp((20 * N * m * np.exp(-300 / (Rc * 2 * (M - 1))) * np.log(M)) / (eta * np.log(2)) - 100 * pb) * np.exp(-600 / (Rc * 2 * (M - 1))) * (np.log(M) ** 2)) / ((eta ** 2) * (np.log(2) ** 2))
+        d2JdNdM = (20*m*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2))))/(M*eta*np.log(2)) + \
+                  (20*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M)*((20*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M*eta*np.log(2)) +
+                  (12000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2)))/(eta*np.log(2)) + (12000*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2)
+        d2JdM2 = 1 / ((M ** 2) * np.log(M)) + 1 / ((M) ** 2 * np.log(M) ** 2) + \
+                 np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*((20*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M*eta*np.log(2)) + (12000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2))**2 \
+                 - np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*((20*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M**2*eta*np.log(2)) - (24000*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M*Rc*eta*np.log(2)*(2*M - 2)**2) + (48000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**3) - (7200000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc**2*eta*np.log(2)*(2*M - 2)**4))
         return np.array([[d2Jdm2, d2JdmdN, d2JdmdM],
                          [d2JdmdN, d2JdN2, d2JdNdM],
                          [d2JdmdM, d2JdNdM, d2JdM2]])
