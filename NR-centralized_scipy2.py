@@ -10,8 +10,15 @@ import itertools as it
 
 ##### FLAG TO INCLUDE THE BARRIER TERM OR NOT #####
 global barrier
-barrier = True
+global aa
+global bb
+barrier = False
+aa = 1
+
+bb = 0.7
 ###################################################
+x0 = [8.45, 1982.82, 26.72]
+x0 = [4, 512, 12]
 def b(m, N, M, eta=1, Rc=0.5):
     b = m*(N/eta)*np.log2(M)*0.2*np.exp(-((3*100)/(2*(M-1)*Rc)))
     return b
@@ -29,12 +36,12 @@ def f(x, pc, sea_cond=np.array([12, 35, 20, 300]), eta=1, B=4000, toh=1e-3, Rc=0
     td = sea_cond[3] / c(sea_cond[0], sea_cond[1], sea_cond[2])
     # add IPM (interior point method) for evaluate pc
     if barrier:
-        bterm = (1/np.exp((0.1-b(m, N, M))*100))
+        bterm = (1/np.exp((0.1-b(m, N, M))*aa)) + np.exp((M*0.6)-20) + np.exp((m*0.6)-10) + np.exp((N-2000)*0.6)
         return (bterm + np.log(m * (1 + pc) * N + B * (toh + td))
                 - np.log(m) - np.log(Rc) - np.log(B) - np.log(N / eta)
                 - np.log(np.log2(M)))
     else:
-        return (np.log(m * (1 + pc) * N + B * (toh + td))
+            return (np.log(m * (1 + pc) * N + B * (toh + td)) + np.exp((M*bb)-20) + np.exp((m*bb)-10) + np.exp((N-2000)*2*bb)
                 - np.log(m) - np.log(Rc) - np.log(B) - np.log(N / eta)
                 - np.log(np.log2(M)))
 
@@ -52,19 +59,19 @@ def g(x, pc, sea_cond=np.array([12, 35, 40, 300]),toh=1e-3, B=4000, eta=0.2, mu=
     p = 1 + pc
     if barrier:
         dJdm = -1 / m + ((N * p) / (L + N * m * p)) + \
-               (20*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2))
+               (aa*N*np.exp((aa*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(5*eta*np.log(2)) - aa*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(5*eta*np.log(2)) + (0.6)*np.exp((m*0.6)-10)
         dJdN = -1 / N + ((m * p) / (L + N * m * p)) + \
-               (20*m*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2))
+               (aa*m*np.exp((aa*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(5*eta*np.log(2)) - aa*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(5*eta*np.log(2)) + 0.6*np.exp((N-2000)*0.6)
         dJdM = -1 / (M * np.log(M)) + \
-               np.exp((20 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (eta * np.log(2)) - 100 * pb) * (
-                           (20 * N * m * np.exp(-300 / (Rc * (2 * M - 2)))) / (M * eta * np.log(2)) + (
-                               12000 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
-                                       Rc * eta * np.log(2) * (2 * M - 2) ** 2))
+               aa*np.exp((aa * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (5*eta * np.log(2)) - aa * pb) * (
+                           (N * m * np.exp(-300 / (Rc * (2 * M - 2)))) / (5*M * eta * np.log(2)) + (
+                               120 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
+                                       Rc * eta * np.log(2) * (2 * M - 2) ** 2)) + 0.6 * np.exp((M*0.6)-20)
 
     else:
-        dJdN = -1 / N + ((m * p) / (L + N * m * p))
-        dJdm = -1/m + ((N * p)/(L + N*m*p))
-        dJdM = -1 / (M * np.log(M))
+        dJdN = -1 / N + ((m * p) / (L + N * m * p)) + bb * np.exp((N-2000)*bb)
+        dJdm = -1/m + ((N * p)/(L + N*m*p)) + (bb) * np.exp((m*bb)-10)
+        dJdM = -1 / (M * np.log(M)) + bb * np.exp((M*bb)-20)
     return np.array([dJdm, dJdN, dJdM]).T
 
 # hessian of J0
@@ -80,42 +87,42 @@ def h(x, pc,*, sea_cond=np.array([12, 35, 20, 300]), toh=1e-3, B=4000, mu=0.2, t
     p = 1 + pc
     if barrier:
         d2Jdm2 = -((N ** 2) * (p ** 2)) / ((L + N * m * p) ** 2) + 1 / (m ** 2) + \
-                 (400*(N**2)*np.exp((20*N*m*np.exp(-300/(Rc*2*(M - 1)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-600/(Rc*2*(M - 1)))*(np.log(M)**2))/((eta**2)*(np.log(2)**2))
+                 ((aa**2)*(N**2)*np.exp((aa*N*m*np.exp(-300/(Rc*2*(M - 1)))*np.log(M))/(5*eta*np.log(2)) - aa*pb)*np.exp(-600/(Rc*2*(M - 1)))*(np.log(M)**2))/((25*eta**2)*(np.log(2)**2)) + (0.6**2)*np.exp((m*0.6)-10)
         d2JdmdN = -((N * m) * (p ** 2)) / (L + N * m * p) ** 2 + p / (L + N * m * p) + \
-                  (20 * np.exp((20 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (eta * np.log(2)) - 100 * pb) * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (eta * np.log(2)) +\
-                  (400*N*m*np.exp((20*N*m*np.exp(-300/(Rc*2*(M - 1)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-600/(Rc*2*(M - 1)))*(np.log(M)**2))/((eta**2)*(np.log(2)**2))
+                  (aa * np.exp((aa * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (5*eta * np.log(2)) - aa * pb) * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (eta * np.log(2)) +\
+                  (aa**2*N*m*np.exp((aa*N*m*np.exp(-300/(Rc*2*(M - 1)))*np.log(M))/(5*eta*np.log(2)) - 100*pb)*np.exp(-600/(Rc*2*(M - 1)))*(np.log(M)**2))/(25*(eta**2)*(np.log(2)**2))
         d2JdmdM = (20*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2))))/(M*eta*np.log(2)) + \
                   (20*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M)*((20*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M*eta*np.log(2)) +
                   (12000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2)))/(eta*np.log(2)) + (12000*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2)
         d2JdN2 = -((m ** 2) * (p ** 2)) / ((L + N * m * p) ** 2) + (1 / (N ** 2)) + \
-                 (400 * (m**2) * np.exp((20 * N * m * np.exp(-300 / (Rc * 2 * (M - 1))) * np.log(M)) / (eta * np.log(2)) - 100 * pb) * np.exp(-600 / (Rc * 2 * (M - 1))) * (np.log(M) ** 2)) / ((eta ** 2) * (np.log(2) ** 2))
+                 ((aa**2) * (m**2) * np.exp((aa * N * m * np.exp(-300 / (Rc * 2 * (M - 1))) * np.log(M)) / (5*eta * np.log(2)) - aa * pb) * np.exp(-600 / (Rc * 2 * (M - 1))) * (np.log(M) ** 2)) / (25*(eta ** 2) * (np.log(2) ** 2)) + (0.6**2)*np.exp((N-2000)*0.6)
         d2JdNdM = (20*m*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2))))/(M*eta*np.log(2)) + \
                   (20*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M)*((20*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M*eta*np.log(2)) +
                   (12000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2)))/(eta*np.log(2)) + (12000*N*np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2)
         d2JdM2 = 1 / ((M ** 2) * np.log(M)) + 1 / ((M) ** 2 * np.log(M) ** 2) + \
-                 np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*((20*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M*eta*np.log(2)) + (12000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2))**2 \
-                 - np.exp((20*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(eta*np.log(2)) - 100*pb)*((20*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M**2*eta*np.log(2)) - (24000*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M*Rc*eta*np.log(2)*(2*M - 2)**2) + (48000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**3) - (7200000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc**2*eta*np.log(2)*(2*M - 2)**4))
+                 (aa**2)*np.exp((aa*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(5*eta*np.log(2)) - aa*pb)*((aa*N*m*np.exp(-300/(Rc*(2*M - 2))))/(5*M*eta*np.log(2)) + (120*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**2))**2 \
+                 - aa*np.exp((aa*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(5*eta*np.log(2)) - aa*pb)*((20*N*m*np.exp(-300/(Rc*(2*M - 2))))/(5*M**2*eta*np.log(2)) - (240*N*m*np.exp(-300/(Rc*(2*M - 2))))/(M*Rc*eta*np.log(2)*(2*M - 2)**2) + (480*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc*eta*np.log(2)*(2*M - 2)**3) - (72000*N*m*np.exp(-300/(Rc*(2*M - 2)))*np.log(M))/(Rc**2*eta*np.log(2)*(2*M - 2)**4)) +(0.6**2) * np.exp((M*0.6)-20)
         '''
         return np.array([[d2Jdm2, d2JdmdN, 0],
                          [d2JdmdN, d2JdN2, 0],
                          [0, 0, d2JdM2]])
         '''
-        return np.array([[d2Jdm2, d2JdmdN, d2JdmdM],
-                         [d2JdmdN, d2JdN2, d2JdNdM],
-                         [d2JdmdM, d2JdNdM, d2JdM2]])
+        return np.array([[d2Jdm2,   d2JdmdN,  0],
+                         [d2JdmdN,  d2JdN2,   0],
+                         [   0,       0, d2JdM2]])
 
 
     else:
-        d2JdN2 = -((m ** 2) * (p ** 2)) / (L + N * m * p) ** 2 + 1 / N ** 2
-        d2Jdm2 = -((N**2)*(p**2))/(L + N*m*p)**2 + 1/m**2
+        d2JdN2 = -((m ** 2) * (p ** 2)) / (L + N * m * p) ** 2 + 1 / N ** 2 + (bb**2)*np.exp((N-2000)*bb)
+        d2Jdm2 = -((N**2)*(p**2))/(L + N*m*p)**2 + 1/m**2 + (bb**2)*np.exp((m*bb)-10)
         d2JdmdN = -((N*m)*(p**2))/(L + N*m*p)**2 + p/(L + N*m*p)
-        d2JdM2 = 1/((M**2)*np.log(M)) + 1/((M)**2*np.log(M)**2)
+        d2JdM2 = 1/((M**2)*np.log(M)) + 1/((M)**2*np.log(M)**2) + (bb**2) * np.exp((M*bb)-20)
 
         return np.array([[d2Jdm2, d2JdmdN, 0],
                         [d2JdmdN, d2JdN2,  0],
                         [  0   ,   0,  d2JdM2]])
 # callback function: save the actual cost at the k-th iteration
-def fun_update(xk, opt):
+def fun_update(xk): #, opt):
     fun_evolution.append(f(xk, pc))
 
 def BER(x):
@@ -123,7 +130,7 @@ def BER(x):
 
 
 #opt.show_options()
-x0 = [12, 512, 2]
+
 Nx = 64  # Non-data subcarriers
 B = 4000   # Bandwidth
 k = 2  # rel doppler margin (3) not higher than 5 or under 1
@@ -140,14 +147,17 @@ cons = ({'type': 'ineq', 'fun': lambda x: -(np.log(x[0]) + np.log(x[1]) + np.log
 res = opt.minimize(f,
                    x0,
                    args=(pc),
-                   method='trust-constr',
+                   method='Newton-CG',
                    # constraints=cons,
-                   bounds=bnds,
+                   # bounds=bnds,
                    callback=fun_update,
                    jac=g,
                    hess=h,
                    tol=1e-3,
-                   options={'maxiter': 2000, 'disp': True})
+                   options={'maxiter': 2000,
+                            'disp': True,
+                            #'gtol':1e-3,
+                            })
 
 
 '''
@@ -184,6 +194,7 @@ plt.grid()
 plt.show()
 #plt.savefig('optim_l-bfgs-b.png')
 
+'''
 # make some plot ranging different possible values of the cyclic prefix 
 fun = []
 m = []

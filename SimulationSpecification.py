@@ -30,7 +30,7 @@ class SimulationSpecification:
     def set_x0(self):
         """Start point (X0) should be specified as a list. Ex. [1,1,2]"""
 
-        self.x0 = np.array([12, 512, 5])
+        self.x0 = np.array([12, 512, 20])
 
         # Please comment the hard coded value and uncomment the following code if inserting the start point from
         # console is preferred

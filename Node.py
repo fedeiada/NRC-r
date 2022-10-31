@@ -34,7 +34,7 @@ class Node(threading.Thread):
 
         ###### MODIFY INITIAL CONDITION #####
         self.xi[0] = self.xi[0] + np.random.randint(-1, 3)
-        self.xi[1] = self.xi[1] + np.random.randint(-100, 100)
+        self.xi[1] = self.xi[1] + np.random.randint(-50, 50)
         self.xi[2] = self.xi[2] + np.random.randint(-1, 4)
 
 
@@ -167,7 +167,7 @@ class Node(threading.Thread):
                                                                np.transpose(self.yi))
 
             '''####### BOUNDARY PROJECTION #########
-             2<=m<=20, tau*B/pc<=N<=B/(k*v), 4<=M<=64 '''
+             2<=m<=20, tau*B/pc<=N<=B/(k*v), 4<=M<=64
             if not self.xi[0] >= 2 and self.xi[0] <= 20:    # check m
                 if self.xi[0] <= 2:
                     self.xi[0] = 2
@@ -183,13 +183,13 @@ class Node(threading.Thread):
                     self.xi[2] = 2
                 else:
                     self.xi[2] = 32
-
+             '''
 
             self.gi_old = self.gi
             self.hi_old = self.hi
 
-            self.hi = self.simulation_function_xtx_btx.get_hessian_fn(self.xi)
-            self.gi = np.subtract(np.matmul(self.hi, self.xi), self.simulation_function_xtx_btx.get_gradient_fn(self.xi))
+            self.hi = self.simulation_function_xtx_btx.get_hessian_fn(self.xi, sea_cond=self.sea_condition)
+            self.gi = np.subtract(np.matmul(self.hi, self.xi), self.simulation_function_xtx_btx.get_gradient_fn(self.xi, sea_cond=self.sea_condition))
 
             self.yi = self.yi + self.gi - self.gi_old
             self.zi = self.zi + self.hi - self.hi_old

@@ -57,7 +57,7 @@ class Simulation:
         plt.show()
 
         for j in range(simulation.simulation_specification.number_of_nodes):
-            print(simulation.network_graph.nodes[j].xi)
+            print(simulation.network_graph.nodes[j].all_calculated_xis[-20:-10])
 
 
     def wait_until_result_founded(self) -> None:
