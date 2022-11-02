@@ -31,21 +31,24 @@ class Node(threading.Thread):
         #self.c = c
         self.xi = np.array(x0)  # + np.random.uniform(-1, 1, x0.size)
 
-
+        '''
         ###### MODIFY INITIAL CONDITION #####
-        self.xi[0] = self.xi[0] + np.random.randint(-1, 3)
-        self.xi[1] = self.xi[1] + np.random.randint(-50, 50)
-        self.xi[2] = self.xi[2] + np.random.randint(-1, 4)
-
+        self.xi[0] = self.xi[0] + np.random.randint(-1, 2)
+        self.xi[1] = self.xi[1] + np.random.randint(-25, 25)
+        self.xi[2] = self.xi[2] + np.random.randint(-1, 3)
+        '''
 
         if self.node_id==0:
             self.sea_condition = np.array([16, 30, 20, 300])
         else:
             self.sea_condition = np.array([11, 40, 40, 300])
 
+
         self.all_calculated_xis = []
+        self.evolution_costfun = []     # update value of cost_function
         self.function_constants = function_constants
         self.simulation_function_xtx_btx = simulation_function_xtx_btx
+        self.ff = simulation_function_xtx_btx.get_fn(self.xi, sea_cond=self.sea_condition)
 
         self.all_nodes_message_buffers = all_nodes_message_buffers
         self.number_of_neighbors = np.sum(adjacency_vector)
@@ -158,14 +161,15 @@ class Node(threading.Thread):
         if self.is_ready_to_update:
             self.is_ready_to_update = False
             self.all_calculated_xis.append(self.xi)
+            self.evolution_costfun.append(self.ff)
 
-            # check condition on z
-            if (self.zi < self.cI).all():
+            # check condition on z !!! modified !!!
+            if np.less_equal(self.zi, self.cI).all():
                 self.zi = self.cI
 
             self.xi = (1 - self.epsilon) * self.xi + np.matmul((self.epsilon * np.linalg.inv(self.zi)),
                                                                np.transpose(self.yi))
-
+            self.ff = self.simulation_function_xtx_btx.get_fn(self.xi, sea_cond=self.sea_condition)    # new value of cost function
             '''####### BOUNDARY PROJECTION #########
              2<=m<=20, tau*B/pc<=N<=B/(k*v), 4<=M<=64
             if not self.xi[0] >= 2 and self.xi[0] <= 20:    # check m

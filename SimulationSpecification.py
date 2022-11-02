@@ -30,7 +30,7 @@ class SimulationSpecification:
     def set_x0(self):
         """Start point (X0) should be specified as a list. Ex. [1,1,2]"""
 
-        self.x0 = np.array([12, 512, 20])
+        self.x0 = np.array([12, 1400, 20])
 
         # Please comment the hard coded value and uncomment the following code if inserting the start point from
         # console is preferred
@@ -48,7 +48,7 @@ class SimulationSpecification:
     def set_epsilon(self):
         """Proper step-size should be specified. Ex. 0.01 """
 
-        self.epsilon = 0.5
+        self.epsilon = 0.01
 
         # Please comment the hard coded value and uncomment the following code if inserting the start point from
         # console is preferred
@@ -64,7 +64,7 @@ class SimulationSpecification:
     def set_c(self):
         """select c to guarantee a big enough basin of attracion """
 
-        self.c = 0.4
+        self.c = 0.5
 
         # Please comment the hard coded value and uncomment the following code if inserting the start point from
         # console is preferred
@@ -81,7 +81,7 @@ class SimulationSpecification:
         """Minimum accepted divergence should be specified. This value will be used to evaluate if calculated xi has
         converged sufficiently or not. """
 
-        self.min_accepted_divergence = 0.1
+        self.min_accepted_divergence = 0.01
 
         # Please comment the hard coded value and uncomment the following code if inserting the start point from
         # console is preferred

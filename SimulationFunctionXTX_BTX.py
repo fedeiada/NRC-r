@@ -9,24 +9,24 @@ if False:        # select the simulation function
             self.b_sum = b_sum
 
         @staticmethod
-        def get_fn(x: numpy.array, b: numpy.array) -> numpy.array:
+        def get_fn(x: np.array, b: np.array) -> np.array:
             """This method can be used to calculate the outcome of the function for each given Xi and Bi"""
             #XTAX +BiX
-            f = numpy.matmul(numpy.matmul(numpy.transpose(x)), x) + numpy.matmul(numpy.transpose(b), x)
+            f = np.matmul(np.matmul(np.transpose(x)), x) + np.matmul(np.transpose(b), x)
             return f
 
         @staticmethod
-        def get_gradient_fn(x: numpy.array, b: numpy.array) -> numpy.array:
+        def get_gradient_fn(x: np.array, b: np.array) -> np.array:
             """This method can be used to calculate the gradient for any given Xi."""
             # 2Ax+Bi
-            A = 2 *numpy.eye(x.size)
-            return numpy.matmul(A, x) + b
+            A = 2 *np.eye(x.size)
+            return np.matmul(A, x) + b
 
         @staticmethod
-        def get_hessian_fn(x: numpy.array) -> numpy.array:
+        def get_hessian_fn(x: np.array) -> np.array:
             """This method can be used to calculate the hessian for any given Xi."""
             #2A
-            return 2 * numpy.eye(x.size)
+            return 2 * np.eye(x.size)
 
         def get_optimum_x(self,number_of_nodes):
             return ((1/( number_of_nodes)) * self.b_sum)
@@ -46,9 +46,9 @@ else:
             td = sea_cond[3] / (1449.2 + 4.6 * sea_cond[0] - 0.055 * (sea_cond[0] ** 2) + 0.00029 * (sea_cond[0] ** 3)
                                 + (1.34 - 0.01 * sea_cond[0]) * (sea_cond[1] - 35) + 0.16 * sea_cond[2])
             bterm = (1 / np.exp((0.1 - (m*(N/eta)*np.log2(M)*0.2*np.exp(-((3*100)/(2*(M-1)*Rc))))) * 100)) + \
-                    np.exp((1-m*0.4)) + \
+                    np.exp((1-m*0.5)) + \
                     np.exp((400 - N) * 0.2) + np.exp((N - 2000) * 0.2) + \
-                    np.exp((2-M*(0.5))) + np.exp((M*0.3)-20)
+                    np.exp((2-M*(0.5))) + np.exp((M*0.5)-20)
             f = (bterm + np.log(m * (1 + pc) * N + B * (toh + td))
                     - np.log(m) - np.log(Rc) - np.log(B) - np.log(N / eta)
                     - np.log(np.log2(M)))
@@ -66,19 +66,19 @@ else:
                    (20 * N * np.exp((20 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
                                eta * np.log(2)) - 100 * pb) * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
                                eta * np.log(2)) - \
-                   0.4 * np.exp((1 - m * 0.3))
+                   0.5 * np.exp((1 - m * 0.5))
             dJdN = -1 / N + ((m * p) / (L + N * m * p)) + \
                    (20 * m * np.exp((20 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
                                eta * np.log(2)) - 100 * pb) * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
                                eta * np.log(2)) - \
-                   0.2*np.exp((400 - N) * 0.2) + 0.2*np.exp((N - 2000) * 0.2)
+                   0.2*np.exp((400 - N) * 0.05) + 0.2*np.exp((N - 2000) * 0.2)
             dJdM = -1 / (M * np.log(M)) + \
                    np.exp(
                        (20 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (eta * np.log(2)) - 100 * pb) * (
                            (20 * N * m * np.exp(-300 / (Rc * (2 * M - 2)))) / (M * eta * np.log(2)) + (
                            12000 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
                                    Rc * eta * np.log(2) * (2 * M - 2) ** 2)) - \
-                   (0.5) * np.exp((2 - M * (0.5))) + (0.3) * np.exp((M * 0.3) - 20)
+                   (0.5) * np.exp((2 - M * (0.5))) + (0.5) * np.exp((M * 0.5) - 20)
 
             return np.array([dJdm, dJdN, dJdM])
 
@@ -96,7 +96,7 @@ else:
                      (400 * (N ** 2) * np.exp((20 * N * m * np.exp(-300 / (Rc * 2 * (M - 1))) * np.log(M)) / (
                                  eta * np.log(2)) - 100 * pb) * np.exp(-600 / (Rc * 2 * (M - 1))) * (
                                   np.log(M) ** 2)) / ((eta ** 2) * (np.log(2) ** 2)) + \
-                     (0.4**2) * np.exp((1 - m * 0.3))
+                     (0.5**2) * np.exp((1 - m * 0.5))
             d2JdmdN = -((N * m) * (p ** 2)) / (L + N * m * p) ** 2 + p / (L + N * m * p) + \
                       (20 * np.exp((20 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
                                   eta * np.log(2)) - 100 * pb) * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
@@ -137,8 +137,7 @@ else:
                                  (20 * N * m * np.exp(-300 / (Rc * (2 * M - 2)))) / (M * eta * np.log(2)) + (
                                      12000 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
                                              Rc * eta * np.log(2) * (2 * M - 2) ** 2)) ** 2 \
-                     - np.exp(
-                (20 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (eta * np.log(2)) - 100 * pb) * (
+                     - np.exp((20 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (eta * np.log(2)) - 100 * pb) * (
                                  (20 * N * m * np.exp(-300 / (Rc * (2 * M - 2)))) / (M ** 2 * eta * np.log(2)) - (
                                      24000 * N * m * np.exp(-300 / (Rc * (2 * M - 2)))) / (
                                              M * Rc * eta * np.log(2) * (2 * M - 2) ** 2) + (
@@ -146,7 +145,7 @@ else:
                                              Rc * eta * np.log(2) * (2 * M - 2) ** 3) - (
                                              7200000 * N * m * np.exp(-300 / (Rc * (2 * M - 2))) * np.log(M)) / (
                                              Rc ** 2 * eta * np.log(2) * (2 * M - 2) ** 4)) + \
-                     (0.5**2)*np.exp((2 - M * (0.5))) + (0.3**2)*np.exp((M * 0.3) - 20)
+                     (0.5**2)*np.exp((2 - M * (0.5))) + (0.5**2)*np.exp((M * 0.5) - 20)
             return np.array([[d2Jdm2, d2JdmdN, 0],
                                [d2JdmdN, d2JdN2,  0],
                                [0,         0, d2JdM2]])

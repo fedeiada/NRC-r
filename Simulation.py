@@ -30,6 +30,7 @@ class Simulation:
         self.network_graph = NetworkGraph(simulation_specification)
         return
 
+
     def generate_convergence_plot(self):
         """Calculates the distance between generated xi of each iteration with expected outcome and finally plot this
         distance over simulation iteration. """
@@ -37,11 +38,9 @@ class Simulation:
         x0 = np.array(simulation.network_graph.optimum_point)
         fig, axs = plt.subplots(1, 2, figsize=(13, 8))
         for j in range(simulation.simulation_specification.number_of_nodes):
-            for i in range(len(simulation.network_graph.nodes[j].all_calculated_xis)):
-                xi = np.array(simulation.network_graph.nodes[j].all_calculated_xis[i])
-                dst = np.sqrt(np.sum((x0 - xi) ** 2))
-                distances[j].append(dst)
-            axs[0].plot(distances[j], '-', label=f'node_{j}')
+            #for i in range(len(simulation.network_graph.nodes[j].evolution_costfun)):
+            #    ff = np.array(simulation.network_graph.nodes[j].evolution_costfun[i])
+            axs[0].plot(simulation.network_graph.nodes[j].evolution_costfun, '-', label=f'J0_{j}')
             axs[1].plot(simulation.network_graph.nodes[j].all_calculated_xis, label=f'node_{j}')
         axs[0].legend(loc='lower left', ncol=1)
         axs[0].set_title('Evolution of the error on xi')
@@ -61,13 +60,18 @@ class Simulation:
 
 
     def wait_until_result_founded(self) -> None:
+        iter = 0
         is_all_dif_accepted = False
         while True and not (is_all_dif_accepted):
+            if iter > 5:
+                print(f"\n\n\n\n\n\n\n")
+                break
             sleep(5)
             is_all_dif_accepted = True
             for i in range(len(simulation.network_graph.nodes)):
                 if not (simulation.network_graph.nodes[i].has_result_founded()):
                     is_all_dif_accepted = False
+                    iter += 1
                     break
         print("Result founded: ")
 
