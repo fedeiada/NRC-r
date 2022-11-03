@@ -63,7 +63,7 @@ class Simulation:
         iter = 0
         is_all_dif_accepted = False
         while True and not (is_all_dif_accepted):
-            if iter > 5:
+            if iter > 8:
                 print(f"\n\n\n\n\n\n\n")
                 break
             sleep(5)
